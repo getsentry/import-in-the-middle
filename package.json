@@ -56,7 +56,7 @@
     "vue": "^3.4.31"
   },
   "dependencies": {
-    "acorn": "^8.8.2",
+    "acorn": "^8.14.0",
     "acorn-import-attributes": "^1.9.5",
     "cjs-module-lexer": "^1.2.2",
     "module-details-from-path": "^1.0.3"

@@ -229,7 +229,10 @@ async function processModule ({ srcUrl, context, parentGetSource, parentResolve,
   }
 
   for (const n of exportNames) {
-    if (n === 'default' && excludeDefault) continue
+    // Skip default exports
+    if (n === 'default' && excludeDefault) {
+      continue
+    }
 
     if (isStarExportLine(n) === true) {
       const [, modFile] = n.split('* from ')
@@ -254,19 +257,25 @@ async function processModule ({ srcUrl, context, parentGetSource, parentResolve,
         addSetter(name, setter, true)
       }
     } else {
+      // Handle `module.exports` specially since it contains a dot which is invalid in variable names
+      // `module.exports` used by packages like `yargs-parser` to shim CJS support in ESM.
+      const variableName = n === 'module.exports' ? '$moduleExports' : `$${n}`
+      const objectKey = n === 'module.exports' ? JSON.stringify(n) : n
+      const objectKeyWithAccess = n === 'module.exports' ? `[${objectKey}]` : `.${objectKey}`
+
       addSetter(n, `
-      let $${n}
+      let ${variableName}
       try {
-        $${n} = _.${n} = namespace.${n}
+        ${variableName} = _${objectKeyWithAccess} = namespace${objectKeyWithAccess}
       } catch (err) {
         if (!(err instanceof ReferenceError)) throw err
       }
-      export { $${n} as ${n} }
-      set.${n} = (v) => {
-        $${n} = v
+      export { ${variableName} as ${objectKey} }
+      set${objectKeyWithAccess} = (v) => {
+        ${variableName} = v
         return true
       }
-      get.${n} = () => $${n}
+      get${objectKeyWithAccess} = () => ${variableName}
       `)
     }
   }
